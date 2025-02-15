@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edrend's Museum</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1 class="site-title">Edrend's Museum</h1>
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search memories...">
+                <div class="search-badge" id="searchBadge">0 Popular</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="gallery" id="gallery">
+        <!-- Images will be dynamically loaded here -->
+    </main>
+
+    <div class="modal" id="imageModal">
+        <span class="close-modal">&times;</span>
+        <img class="modal-content" id="modalImage">
+        <a id="downloadBtn" class="download-btn" download>
+            <i class="fas fa-download"></i> Download
+        </a>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
