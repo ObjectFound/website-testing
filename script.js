@@ -4,11 +4,6 @@ const modalImg = document.getElementById('modalImage');
 const downloadBtn = document.getElementById('downloadBtn');
 const searchInput = document.getElementById('searchInput');
 const searchBadge = document.getElementById('searchBadge');
-const monthFilter = document.getElementById('monthFilter');
-const yearFilter = document.getElementById('yearFilter');
-const dateFilterBtn = document.getElementById('dateFilterBtn');
-const dateDropdown = document.getElementById('dateDropdown');
-const applyDateFilter = document.getElementById('applyDateFilter');
 
 // Google Drive folder IDs - replace with your folder IDs
 const FOLDER_IDS = [
@@ -55,8 +50,7 @@ async function fetchGoogleDriveImages() {
                 url: getGoogleDriveImageUrl(file.id),
                 title: file.name.split('.')[0].slice(-3).toUpperCase(),
                 downloadCount: 0,
-                downloadUrl: getDownloadUrl(file.id),
-                date: extractDateFromFilename(file.name)
+                downloadUrl: getDownloadUrl(file.id)
             }));
             
             allImages.push(...folderImages);
@@ -65,7 +59,6 @@ async function fetchGoogleDriveImages() {
         // Shuffle images for better presentation
         images = shuffleArray(allImages);
         loadImages(images);
-        populateDateFilters();
     } catch (error) {
         console.error('Error fetching images:', error);
         gallery.innerHTML = '<p>Error loading images. Please try again later.</p>';
@@ -192,94 +185,4 @@ window.addEventListener('resize', () => {
     resizeTimeout = setTimeout(() => {
         loadImages(images);
     }, 250);
-});
-
-// Add function to extract date from filename
-function extractDateFromFilename(filename) {
-    const datePattern = /(\d{4})-(\d{2})-(\d{2})/;
-    const match = filename.match(datePattern);
-    if (match) {
-        return {
-            year: match[1],
-            month: match[2],
-            day: match[3]
-        };
-    }
-    return null;
-}
-
-// Add function to populate date filters
-function populateDateFilters() {
-    const months = new Set();
-    const years = new Set();
-    
-    images.forEach(image => {
-        if (image.date) {
-            months.add(image.date.month);
-            years.add(image.date.year);
-        }
-    });
-
-    const monthNames = {
-        '01': 'January', '02': 'February', '03': 'March',
-        '04': 'April', '05': 'May', '06': 'June',
-        '07': 'July', '08': 'August', '09': 'September',
-        '10': 'October', '11': 'November', '12': 'December'
-    };
-
-    // Populate month filter
-    monthFilter.innerHTML = '<option value="">Month</option>';
-    [...months].sort().forEach(month => {
-        monthFilter.innerHTML += `
-            <option value="${month}">${monthNames[month]}</option>
-        `;
-    });
-
-    // Populate year filter
-    yearFilter.innerHTML = '<option value="">Year</option>';
-    [...years].sort().reverse().forEach(year => {
-        yearFilter.innerHTML += `
-            <option value="${year}">${year}</option>
-        `;
-    });
-}
-
-// Add click event for date filter button
-dateFilterBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dateDropdown.classList.toggle('active');
-});
-
-// Close dropdown when clicking outside
-document.addEventListener('click', (e) => {
-    if (!dateDropdown.contains(e.target) && !dateFilterBtn.contains(e.target)) {
-        dateDropdown.classList.remove('active');
-    }
-});
-
-// Modify the filterImages function
-function filterImages() {
-    const selectedMonth = monthFilter.value;
-    const selectedYear = yearFilter.value;
-    const searchTerm = searchInput.value.toLowerCase();
-
-    const filteredImages = images.filter(image => {
-        if (!image.date) return true; // Show images without dates
-        
-        const matchesMonth = !selectedMonth || image.date.month === selectedMonth;
-        const matchesYear = !selectedYear || image.date.year === selectedYear;
-        const matchesSearch = !searchTerm || image.title.toLowerCase().includes(searchTerm);
-        
-        return matchesMonth && matchesYear && matchesSearch;
-    });
-
-    loadImages(filteredImages);
-    dateDropdown.classList.remove('active'); // Close dropdown after filtering
-}
-
-// Update event listeners
-applyDateFilter.addEventListener('click', filterImages);
-
-// Remove the previous month and year filter event listeners
-monthFilter.removeEventListener('change', filterImages);
-yearFilter.removeEventListener('change', filterImages); 
+}); 
