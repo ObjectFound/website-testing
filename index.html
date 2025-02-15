@@ -8,14 +8,27 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <!-- Welcome Screen -->
+    <div id="welcomeScreen" class="welcome-screen">
+        <div class="welcome-content">
+            <h2 class="welcome-title">Welcome</h2>
+            <p class="welcome-text">@edrend.p</p>
+            <button id="enterButton" class="enter-btn">Enter</button>
+        </div>
+    </div>
+
     <header>
         <div class="header-content">
-            <h1 class="site-title">@edrend.p</h1>
             <div class="search-container">
                 <i class="fas fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Search memories...">
                 <div class="search-badge" id="searchBadge">0 Popular</div>
             </div>
+        </div>
+        <div class="categories-container">
+            <button class="category-tab active" data-category="all">All</button>
+            <button class="category-tab" data-category="latest">Latest</button>
+            <button class="category-tab" data-category="albums">Albums</button>
         </div>
     </header>
 
@@ -31,6 +44,7 @@
         </a>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html> 
