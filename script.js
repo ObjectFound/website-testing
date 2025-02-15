@@ -29,6 +29,15 @@ const DOWNLOAD_THRESHOLD = 5; // Number of downloads to be considered "Popular"
 // Add to existing constants
 const albumsMap = new Map();
 
+// Add rate limiting and abuse prevention
+const RATE_LIMIT = {
+    downloads: {
+        count: 0,
+        lastReset: Date.now(),
+        limit: 50 // downloads per hour
+    }
+};
+
 // Function to get proper Google Drive image URL
 function getGoogleDriveImageUrl(fileId) {
     return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
@@ -43,41 +52,49 @@ function getDownloadUrl(fileId) {
 async function fetchGoogleDriveImages() {
     try {
         const allImages = [];
+        const seenIds = new Set(); // Track seen image IDs
         
         for (const folder of FOLDER_IDS) {
-            // First get the folder name
-            const folderResponse = await fetch(
-                `https://www.googleapis.com/drive/v3/files/${folder.id}?key=${API_KEY}`
-            );
-            const folderData = await folderResponse.json();
-            
-            // Update folder name from Google Drive
-            folder.name = folderData.name;
-
-            // Then get all files
-            const DRIVE_API_URL = `https://www.googleapis.com/drive/v3/files?q='${folder.id}'+in+parents&pageSize=1000&fields=files(id,name,mimeType,createdTime)&key=${API_KEY}`;
+            const DRIVE_API_URL = `https://www.googleapis.com/drive/v3/files?q='${folder.id}'+in+parents&pageSize=1000&fields=files(id,name,mimeType,createdTime,modifiedTime)&key=${API_KEY}`;
             const response = await fetch(DRIVE_API_URL);
             const data = await response.json();
             
-            const folderImages = data.files.map(file => ({
-                id: file.id,
-                url: getGoogleDriveImageUrl(file.id),
-                title: file.name.split('.')[0].slice(-3).toUpperCase(),
-                originalName: file.name,
-                mimeType: file.mimeType,
-                downloadCount: 0,
-                downloadUrl: getDownloadUrl(file.id),
-                timestamp: new Date(file.createdTime).getTime(),
-                albumId: folder.id,
-                albumName: folderData.name // Use actual folder name
-            }));
+            const folderImages = data.files
+                .filter(file => !seenIds.has(file.id)) // Only include unseen images
+                .map(file => {
+                    seenIds.add(file.id); // Mark as seen
+                    return {
+                        id: file.id,
+                        url: getGoogleDriveImageUrl(file.id),
+                        title: file.name.split('.')[0].slice(-3).toUpperCase(),
+                        originalName: file.name,
+                        mimeType: file.mimeType,
+                        downloadCount: 0,
+                        downloadUrl: getDownloadUrl(file.id),
+                        timestamp: Math.max(
+                            new Date(file.createdTime).getTime(),
+                            new Date(file.modifiedTime).getTime()
+                        ),
+                        albumId: folder.id,
+                        albumName: folder.name
+                    };
+                });
             
             albumsMap.set(folder.id, folderImages);
             allImages.push(...folderImages);
         }
         
-        images = allImages.sort((a, b) => b.timestamp - a.timestamp);
-        loadImages(images);
+        // Store unique images
+        images = [...new Set(allImages)];
+        
+        // Show Latest category by default
+        categoryTabs.forEach(tab => {
+            tab.classList.remove('active');
+            if (tab.dataset.category === 'latest') {
+                tab.classList.add('active');
+            }
+        });
+        filterImagesByCategory('latest');
     } catch (error) {
         console.error('Error fetching images:', error);
         gallery.innerHTML = '<p>Error loading images. Please try again later.</p>';
@@ -174,9 +191,9 @@ fetchGoogleDriveImages();
 let isLoading = false;
 let lastScrollPosition = 0;
 
-// Update infinite scroll to respect current category
+// Update infinite scroll to prevent duplicates
 window.addEventListener('scroll', () => {
-    if (isLoading || currentCategory === 'albums') return;
+    if (isLoading || currentCategory === 'albums' || currentCategory === 'latest') return;
     
     const currentScrollPosition = window.scrollY;
     if (currentScrollPosition > lastScrollPosition && 
@@ -184,25 +201,10 @@ window.addEventListener('scroll', () => {
         
         isLoading = true;
         
-        // Clone images based on current category
-        const currentImages = currentCategory === 'latest' 
-            ? [...images].sort((a, b) => b.timestamp - a.timestamp)
-            : images;
-            
-        const existingLength = currentImages.length;
-        const newImages = currentImages.slice(0, Math.min(12, existingLength)).map(img => ({
-            ...img,
-            id: img.id + Date.now(),
-            title: img.title
-        }));
-        
-        images.push(...newImages);
-        
-        // Maintain category when loading more images
-        if (currentCategory === 'latest') {
-            loadImages([...images].sort((a, b) => b.timestamp - a.timestamp), true);
-        } else {
-            loadImages(images, true);
+        // Only load more for 'all' category and prevent duplicates
+        if (currentCategory === 'all') {
+            const uniqueImages = [...new Set([...images])];
+            loadImages(uniqueImages, true);
         }
         
         setTimeout(() => {
@@ -245,19 +247,22 @@ categoryTabs.forEach(tab => {
 // Update filterImagesByCategory function
 function filterImagesByCategory(category) {
     currentCategory = category;
-    let filteredImages;
     
     switch(category) {
         case 'latest':
-            filteredImages = [...images].sort((a, b) => b.timestamp - a.timestamp);
-            loadImages(filteredImages, true);
+            // Show the 300 most recent items without duplicates
+            const latestImages = [...new Set([...images])]
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, 300); // Limit to 300 most recent items
+            loadImages(latestImages, true);
             break;
         case 'albums':
             showAlbumView();
             break;
         case 'all':
-        default:
-            loadImages(images, true);
+            // Show all images without duplicates
+            const uniqueImages = [...new Set([...images])];
+            loadImages(uniqueImages, true);
             break;
     }
 }
@@ -322,13 +327,32 @@ function showAlbumView() {
 
 // Update the downloadAlbum function
 async function downloadAlbum(albumId, albumName) {
+    // Check rate limit
+    const hoursSinceReset = (Date.now() - RATE_LIMIT.downloads.lastReset) / (1000 * 60 * 60);
+    if (hoursSinceReset >= 1) {
+        RATE_LIMIT.downloads.count = 0;
+        RATE_LIMIT.downloads.lastReset = Date.now();
+    }
+
+    if (RATE_LIMIT.downloads.count >= RATE_LIMIT.downloads.limit) {
+        alert('Download limit reached. Please try again later.');
+        return;
+    }
+
     const albumFiles = albumsMap.get(albumId);
     if (!albumFiles) return;
 
-    // Filter only images
-    const albumImages = albumFiles.filter(file => 
-        file.mimeType.startsWith('image/')
-    );
+    // Filter only images and sort by timestamp
+    const albumImages = albumFiles
+        .filter(file => file.mimeType.startsWith('image/'))
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+    if (albumImages.length === 0) {
+        alert('No images found in this album');
+        return;
+    }
+
+    RATE_LIMIT.downloads.count++;
 
     const loadingToast = document.createElement('div');
     loadingToast.className = 'loading-toast';
