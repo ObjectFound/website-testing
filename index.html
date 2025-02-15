@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edrend's Museum</title>
+    <title>@edrend.p</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@700&display=swap" rel="stylesheet">
@@ -11,11 +11,25 @@
 <body>
     <header>
         <div class="header-content">
-            <h1 class="site-title">Edrend's Museum</h1>
+            <h1 class="site-title">@edrend.p</h1>
             <div class="search-container">
                 <i class="fas fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Search memories...">
                 <div class="search-badge" id="searchBadge">0 Popular</div>
+            </div>
+            <div class="date-filter">
+                <button id="dateFilterBtn" class="date-btn">
+                    <i class="fas fa-calendar-alt"></i>
+                </button>
+                <div id="dateDropdown" class="date-dropdown">
+                    <select id="monthFilter" class="date-select">
+                        <option value="">All Months</option>
+                    </select>
+                    <select id="yearFilter" class="date-select">
+                        <option value="">All Years</option>
+                    </select>
+                    <button id="applyDateFilter" class="apply-btn">Apply</button>
+                </div>
             </div>
         </div>
     </header>
