@@ -93,12 +93,18 @@ function shuffleArray(array) {
     return array;
 }
 
-// Load images with loading state
-function loadImages(images) {
+// Update the loadImages function to maintain category state
+let currentCategory = 'latest'; // Track current category
+
+function loadImages(imagesToLoad, preserveCategory = false) {
+    if (!preserveCategory) {
+        currentCategory = 'all';
+    }
+    
     gallery.innerHTML = '';
     let popularCount = 0;
     
-    images.forEach(image => {
+    imagesToLoad.forEach(image => {
         if (image.downloadCount >= DOWNLOAD_THRESHOLD) {
             popularCount++;
         }
@@ -122,7 +128,6 @@ function loadImages(images) {
         gallery.appendChild(card);
     });
     
-    // Update search badge with popular count
     searchBadge.textContent = `${popularCount} Popular`;
 }
 
@@ -169,26 +174,36 @@ fetchGoogleDriveImages();
 let isLoading = false;
 let lastScrollPosition = 0;
 
+// Update infinite scroll to respect current category
 window.addEventListener('scroll', () => {
-    if (isLoading) return;
+    if (isLoading || currentCategory === 'albums') return;
     
     const currentScrollPosition = window.scrollY;
-    // Check if user is scrolling down
     if (currentScrollPosition > lastScrollPosition && 
         (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 1000) {
         
         isLoading = true;
         
-        // Clone only a portion of images
-        const existingLength = images.length;
-        const newImages = images.slice(0, Math.min(12, existingLength)).map(img => ({
+        // Clone images based on current category
+        const currentImages = currentCategory === 'latest' 
+            ? [...images].sort((a, b) => b.timestamp - a.timestamp)
+            : images;
+            
+        const existingLength = currentImages.length;
+        const newImages = currentImages.slice(0, Math.min(12, existingLength)).map(img => ({
             ...img,
-            id: img.id + Date.now(), // Ensure unique IDs
-            title: img.title + Math.floor(Math.random() * 100)
+            id: img.id + Date.now(),
+            title: img.title
         }));
         
         images.push(...newImages);
-        loadImages(images);
+        
+        // Maintain category when loading more images
+        if (currentCategory === 'latest') {
+            loadImages([...images].sort((a, b) => b.timestamp - a.timestamp), true);
+        } else {
+            loadImages(images, true);
+        }
         
         setTimeout(() => {
             isLoading = false;
@@ -199,10 +214,18 @@ window.addEventListener('scroll', () => {
 
 // Add window resize handler to prevent duplication
 let resizeTimeout;
+
+// Update resize handler
 window.addEventListener('resize', () => {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
-        loadImages(images);
+        if (currentCategory === 'albums') {
+            showAlbumView();
+        } else if (currentCategory === 'latest') {
+            loadImages([...images].sort((a, b) => b.timestamp - a.timestamp), true);
+        } else {
+            loadImages(images, true);
+        }
     }, 250);
 });
 
@@ -219,29 +242,29 @@ categoryTabs.forEach(tab => {
     });
 });
 
-// Modify filterImagesByCategory function
+// Update filterImagesByCategory function
 function filterImagesByCategory(category) {
+    currentCategory = category;
     let filteredImages;
     
     switch(category) {
         case 'latest':
-            filteredImages = [...images]
-                .sort((a, b) => b.timestamp - a.timestamp); // Show all images in chronological order
+            filteredImages = [...images].sort((a, b) => b.timestamp - a.timestamp);
+            loadImages(filteredImages, true);
             break;
         case 'albums':
             showAlbumView();
-            return;
+            break;
         case 'all':
         default:
-            filteredImages = images;
+            loadImages(images, true);
             break;
     }
-    
-    loadImages(filteredImages);
 }
 
 // Add function to show album view
 function showAlbumView() {
+    currentCategory = 'albums';
     gallery.innerHTML = '';
     
     FOLDER_IDS.forEach(folder => {
@@ -251,12 +274,11 @@ function showAlbumView() {
         const albumCard = document.createElement('div');
         albumCard.className = 'album-card';
         
-        // Get up to 4 images (not videos) for the preview
+        // Get preview images
         const previewImages = albumFiles
             .filter(file => file.mimeType.startsWith('image/'))
             .slice(0, 4);
         
-        // Count media types
         const imageCount = albumFiles.filter(file => file.mimeType.startsWith('image/')).length;
         const videoCount = albumFiles.filter(file => file.mimeType.startsWith('video/')).length;
         
@@ -277,18 +299,21 @@ function showAlbumView() {
             </div>
         `;
 
-        // Add event listeners
+        // Update click handlers
         albumCard.querySelector('.album-download-btn').addEventListener('click', (e) => {
             e.stopPropagation();
+            e.preventDefault();
             downloadAlbum(folder.id, folder.name);
         });
 
         albumCard.addEventListener('click', () => {
-            loadImages(albumFiles); // Show all files from this album
+            const albumImages = albumFiles;
+            loadImages(albumImages, true);
             categoryTabs.forEach(tab => {
                 tab.classList.remove('active');
                 if (tab.dataset.category === 'all') tab.classList.add('active');
             });
+            currentCategory = 'all';
         });
 
         gallery.appendChild(albumCard);
