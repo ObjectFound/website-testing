@@ -281,32 +281,12 @@ header {
     right: 10px;
     background-color: var(--pinterest-red);
     color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    z-index: 1;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    animation: fadeIn 0.3s ease-out;
-}
-
-/* Update search badge styles */
-.search-badge {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: var(--pinterest-red);
-    color: white;
     padding: 4px 12px;
     border-radius: 16px;
     font-size: 12px;
     font-weight: 600;
     z-index: 2;
-    transition: all 0.3s ease;
-    white-space: nowrap;
+    animation: fadeIn 0.3s ease;
 }
 
 /* Update date filter styles */
@@ -552,4 +532,18 @@ header {
     font-size: 0.9rem;
     z-index: 2000;
     animation: fadeIn 0.3s ease;
+}
+
+/* Add styles for download warning */
+.download-warning {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    z-index: 3000;
 } 
