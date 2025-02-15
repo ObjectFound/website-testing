@@ -20,37 +20,35 @@ header {
     position: fixed;
     top: 0;
     width: 100%;
-    padding: 1rem;
+    padding: 1.5rem 1rem 0.5rem;
     background-color: white;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .header-content {
-    max-width: 1400px;
+    width: 100%;
+    max-width: 1200px;
     margin: 0 auto;
     display: flex;
     align-items: center;
-    gap: 2rem;
-    padding: 0.5rem 1rem;
+    justify-content: center;
+    padding: 0;
+    margin-bottom: 1rem;
 }
 
 .site-title {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: var(--pinterest-red);
-    font-size: 1.6rem;
-    white-space: nowrap;
-    margin: 0;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    display: none;
 }
 
 .search-container {
-    flex-grow: 1;
-    max-width: 800px;
+    width: 100%;
+    max-width: 500px;
     position: relative;
-    display: flex;
-    align-items: center;
+    margin: 0 auto;
 }
 
 .search-container i {
@@ -59,32 +57,40 @@ header {
     top: 50%;
     transform: translateY(-50%);
     color: var(--pinterest-gray);
+    font-size: 16px;
 }
 
 #searchInput {
     width: 100%;
-    padding: 14px 100px 14px 48px;
+    padding: 12px 100px 12px 45px;
     border: none;
     border-radius: 24px;
     background-color: var(--pinterest-light);
     font-size: 15px;
-    color: var(--pinterest-dark);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.5px;
     transition: all 0.3s ease;
 }
 
 #searchInput:focus {
     outline: none;
     background-color: white;
-    box-shadow: 0 0 0 4px rgba(230, 0, 35, 0.1);
+    box-shadow: 0 0 0 3px rgba(230, 0, 35, 0.1);
+}
+
+#searchInput::placeholder {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--pinterest-gray);
 }
 
 .gallery {
-    max-width: 1800px;
-    margin: 80px auto 0;
+    max-width: none;
+    margin: 160px auto 0;
     padding: 0 16px;
     columns: 6 236px;
     column-gap: 16px;
-    transition: columns 0.3s ease;
 }
 
 .image-card {
@@ -182,7 +188,7 @@ header {
     text-decoration: none;
     font-weight: 600;
     transition: background-color 0.3s;
-    box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+    box-shadow: none;
     font-size: 14px;
 }
 
@@ -286,10 +292,12 @@ header {
     animation: fadeIn 0.3s ease-out;
 }
 
-/* Add search badge styles */
+/* Update search badge styles */
 .search-badge {
     position: absolute;
     right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
     background-color: var(--pinterest-red);
     color: white;
     padding: 4px 12px;
@@ -298,6 +306,7 @@ header {
     font-weight: 600;
     z-index: 2;
     transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
 /* Update date filter styles */
@@ -309,32 +318,88 @@ header {
     display: none;
 }
 
+/* Add categories styles */
+.categories-container {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    gap: 1.5rem;
+    padding: 0 1rem;
+    margin-bottom: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.categories-container::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+.category-tab {
+    padding: 0.75rem 1rem;
+    border: none;
+    background: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--pinterest-gray);
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+}
+
+.category-tab::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--pinterest-red);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.category-tab.active {
+    color: var(--pinterest-red);
+}
+
+.category-tab.active::after {
+    transform: scaleX(1);
+}
+
 /* Update responsive styles */
 @media (max-width: 768px) {
     .header-content {
         flex-direction: column;
         gap: 1rem;
-        padding: 1rem;
     }
 
     .site-title {
-        font-size: 1.6rem;
+        padding-left: 0;
+        order: -1; /* Move title to top on mobile */
     }
 
-    .search-badge {
-        padding: 3px 10px;
-        font-size: 11px;
-    }
-
-    .date-dropdown {
-        right: 50%;
-        transform: translateX(50%);
+    .search-container {
+        width: 100%;
     }
 
     .gallery {
-        margin-top: 120px;
+        margin-top: 180px;
         padding: 8px;
         columns: 2 180px;
+    }
+
+    .categories-container {
+        padding: 0 0.5rem;
+        gap: 1rem;
+    }
+    
+    .category-tab {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
     }
 }
 
@@ -342,4 +407,149 @@ header {
     .gallery {
         columns: 2 160px;
     }
+}
+
+/* Add welcome screen styles */
+.welcome-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.welcome-screen.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.welcome-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 24px;
+    text-align: center;
+    max-width: 90%;
+    width: 400px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.welcome-title {
+    font-size: 2rem;
+    color: var(--pinterest-red);
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.welcome-text {
+    color: var(--pinterest-gray);
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+
+.enter-btn {
+    background-color: var(--pinterest-red);
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.enter-btn:hover {
+    background-color: #ad081b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(230,0,35,0.3);
+}
+
+/* Add album styles */
+.album-card {
+    break-inside: avoid;
+    margin-bottom: 24px;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.album-card:hover {
+    transform: translateY(-4px);
+}
+
+.album-preview {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+    background: var(--pinterest-light);
+}
+
+.preview-image {
+    aspect-ratio: 1;
+    overflow: hidden;
+}
+
+.preview-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.album-info {
+    padding: 16px;
+}
+
+.album-info h3 {
+    margin: 0 0 8px;
+    color: var(--pinterest-dark);
+    font-size: 1.1rem;
+}
+
+.album-info p {
+    color: var(--pinterest-gray);
+    margin: 0 0 12px;
+    font-size: 0.9rem;
+}
+
+.album-download-btn {
+    background: var(--pinterest-red);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.album-download-btn:hover {
+    background-color: #ad081b;
+}
+
+/* Add loading toast styles */
+.loading-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 0.9rem;
+    z-index: 2000;
+    animation: fadeIn 0.3s ease;
 } 
