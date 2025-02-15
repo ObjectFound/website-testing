@@ -36,13 +36,13 @@ header {
 }
 
 .site-title {
-    font-family: -apple-system, 'SF Pro Display', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: #e60023;
-    font-size: 1.8rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--pinterest-red);
+    font-size: 1.6rem;
     white-space: nowrap;
     margin: 0;
-    font-weight: 700;
-    letter-spacing: -0.5px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 .search-container {
@@ -301,76 +301,12 @@ header {
 }
 
 /* Update date filter styles */
-.date-filter {
-    position: relative;
-}
-
-.date-btn {
-    padding: 12px;
-    border: 2px solid var(--pinterest-red);
-    border-radius: 50%;
-    background-color: white;
-    color: var(--pinterest-red);
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 45px;
-    height: 45px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.date-btn:hover {
-    background-color: var(--pinterest-red);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(230,0,35,0.2);
-}
-
-.date-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    background-color: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    padding: 16px;
-    display: none;
-    z-index: 1000;
-    margin-top: 8px;
-    min-width: 200px;
-}
-
-.date-dropdown.active {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.date-select {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 14px;
-    width: 100%;
-    cursor: pointer;
-    outline: none;
-}
-
+.date-filter,
+.date-btn,
+.date-dropdown,
+.date-select,
 .apply-btn {
-    background-color: var(--pinterest-red);
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background-color 0.3s;
-}
-
-.apply-btn:hover {
-    background-color: #ad081b;
+    display: none;
 }
 
 /* Update responsive styles */
