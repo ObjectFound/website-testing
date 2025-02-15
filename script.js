@@ -45,7 +45,7 @@ function getGoogleDriveImageUrl(fileId) {
 
 // Function to get download URL
 function getDownloadUrl(fileId) {
-    return `https://drive.google.com/uc?id=${fileId}&export=download`;
+    return `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${API_KEY}`;
 }
 
 // Fetch images from multiple Google Drive folders
@@ -119,13 +119,8 @@ function loadImages(imagesToLoad, preserveCategory = false) {
     }
     
     gallery.innerHTML = '';
-    let popularCount = 0;
     
     imagesToLoad.forEach(image => {
-        if (image.downloadCount >= DOWNLOAD_THRESHOLD) {
-            popularCount++;
-        }
-        
         const card = document.createElement('div');
         card.className = 'image-card loading';
         
@@ -142,10 +137,9 @@ function loadImages(imagesToLoad, preserveCategory = false) {
             openModal(image.url, image.downloadUrl);
             incrementDownloadCount(image);
         });
+        
         gallery.appendChild(card);
     });
-    
-    searchBadge.textContent = `${popularCount} Popular`;
 }
 
 // Add function to track downloads
@@ -250,17 +244,22 @@ function filterImagesByCategory(category) {
     
     switch(category) {
         case 'latest':
-            // Show the 300 most recent items without duplicates
-            const latestImages = [...new Set([...images])]
+            // Get all images from all folders and sort by timestamp
+            const allFolderImages = [];
+            albumsMap.forEach(folderImages => {
+                allFolderImages.push(...folderImages);
+            });
+            
+            const latestImages = [...new Set(allFolderImages)]
                 .sort((a, b) => b.timestamp - a.timestamp)
-                .slice(0, 300); // Limit to 300 most recent items
+                .slice(0, 300);
             loadImages(latestImages, true);
             break;
         case 'albums':
             showAlbumView();
             break;
         case 'all':
-            // Show all images without duplicates
+        default:
             const uniqueImages = [...new Set([...images])];
             loadImages(uniqueImages, true);
             break;
@@ -279,7 +278,6 @@ function showAlbumView() {
         const albumCard = document.createElement('div');
         albumCard.className = 'album-card';
         
-        // Get preview images
         const previewImages = albumFiles
             .filter(file => file.mimeType.startsWith('image/'))
             .slice(0, 4);
@@ -304,21 +302,10 @@ function showAlbumView() {
             </div>
         `;
 
-        // Update click handlers
         albumCard.querySelector('.album-download-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
             downloadAlbum(folder.id, folder.name);
-        });
-
-        albumCard.addEventListener('click', () => {
-            const albumImages = albumFiles;
-            loadImages(albumImages, true);
-            categoryTabs.forEach(tab => {
-                tab.classList.remove('active');
-                if (tab.dataset.category === 'all') tab.classList.add('active');
-            });
-            currentCategory = 'all';
         });
 
         gallery.appendChild(albumCard);
@@ -326,82 +313,79 @@ function showAlbumView() {
 }
 
 // Update the downloadAlbum function
+let isDownloading = false;
+
 async function downloadAlbum(albumId, albumName) {
-    // Check rate limit
-    const hoursSinceReset = (Date.now() - RATE_LIMIT.downloads.lastReset) / (1000 * 60 * 60);
-    if (hoursSinceReset >= 1) {
-        RATE_LIMIT.downloads.count = 0;
-        RATE_LIMIT.downloads.lastReset = Date.now();
-    }
-
-    if (RATE_LIMIT.downloads.count >= RATE_LIMIT.downloads.limit) {
-        alert('Download limit reached. Please try again later.');
-        return;
-    }
-
-    const albumFiles = albumsMap.get(albumId);
-    if (!albumFiles) return;
-
-    // Filter only images and sort by timestamp
-    const albumImages = albumFiles
-        .filter(file => file.mimeType.startsWith('image/'))
-        .sort((a, b) => b.timestamp - a.timestamp);
-
-    if (albumImages.length === 0) {
-        alert('No images found in this album');
-        return;
-    }
-
-    RATE_LIMIT.downloads.count++;
-
+    if (isDownloading) return;
+    isDownloading = true;
+    
     const loadingToast = document.createElement('div');
     loadingToast.className = 'loading-toast';
-    loadingToast.textContent = `Preparing ${albumImages.length} images...`;
+    loadingToast.textContent = `Preparing files...`;
     document.body.appendChild(loadingToast);
 
     try {
+        const albumFiles = albumsMap.get(albumId);
+        if (!albumFiles) {
+            alert('No files found in this album');
+            return;
+        }
+
+        // Filter only images
+        const albumImages = albumFiles.filter(file => 
+            file.mimeType.startsWith('image/')
+        );
+
+        if (albumImages.length === 0) {
+            alert('No images found in this album');
+            return;
+        }
+
+        // Create zip instance
         const zip = new JSZip();
         const folder = zip.folder(albumName);
         let downloadedCount = 0;
         const totalFiles = albumImages.length;
+        const failedFiles = [];
 
-        // Process images sequentially to avoid rate limiting
-        for (const image of albumImages) {
+        // Download files sequentially
+        for (const file of albumImages) {
             try {
-                loadingToast.textContent = `Downloading: ${downloadedCount + 1}/${totalFiles}`;
+                loadingToast.textContent = `Downloading file ${downloadedCount + 1}/${totalFiles}`;
                 
-                // Use the direct download URL
-                const response = await fetch(image.downloadUrl);
-                if (!response.ok) throw new Error('Download failed');
+                // Fetch file with timeout and retry
+                const response = await fetchWithRetry(file.downloadUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to download ${file.originalName}`);
+                }
 
                 const blob = await response.blob();
-                folder.file(image.originalName, blob);
-                downloadedCount++;
                 
-                // Add a small delay between downloads
-                await new Promise(resolve => setTimeout(resolve, 300));
+                // Add file to zip with original name
+                folder.file(file.originalName, blob);
+                downloadedCount++;
+
             } catch (error) {
-                console.error('Error downloading image:', error);
-                continue; // Continue with next image if one fails
+                console.error(`Error downloading ${file.originalName}:`, error);
+                failedFiles.push(file.originalName);
+                continue;
             }
         }
 
         if (downloadedCount === 0) {
-            throw new Error('No images were downloaded successfully');
+            throw new Error('No files were downloaded successfully');
         }
 
+        // Create and download zip
         loadingToast.textContent = 'Creating zip file...';
-        
-        // Generate zip with compression
-        const content = await zip.generateAsync({ 
+        const content = await zip.generateAsync({
             type: 'blob',
             compression: 'DEFLATE',
-            compressionOptions: {
-                level: 6
-            }
+            compressionOptions: { level: 5 }
         });
-        
-        // Trigger download
+
+        // Download zip file
         const zipUrl = URL.createObjectURL(content);
         const link = document.createElement('a');
         link.href = zipUrl;
@@ -411,13 +395,46 @@ async function downloadAlbum(albumId, albumName) {
         document.body.removeChild(link);
         URL.revokeObjectURL(zipUrl);
 
-        loadingToast.textContent = `Successfully downloaded ${downloadedCount} images!`;
+        // Show completion message
+        if (failedFiles.length > 0) {
+            loadingToast.textContent = `Downloaded ${downloadedCount} files. ${failedFiles.length} files failed.`;
+        } else {
+            loadingToast.textContent = `Successfully downloaded ${downloadedCount} files!`;
+        }
         setTimeout(() => document.body.removeChild(loadingToast), 3000);
+
     } catch (error) {
         console.error('Download error:', error);
         loadingToast.textContent = 'Download failed. Please try again.';
         setTimeout(() => document.body.removeChild(loadingToast), 3000);
+    } finally {
+        isDownloading = false;
     }
+}
+
+// Add helper function for fetch with retry
+async function fetchWithRetry(url, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': '*/*',
+                },
+                timeout: 30000 // 30 second timeout
+            });
+            
+            if (response.ok) return response;
+            
+            // If response wasn't ok, wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        }
+    }
+    throw new Error('Failed after retries');
 }
 
 // Add helper function to get file extension
@@ -465,17 +482,19 @@ enterButton.addEventListener('click', () => {
     document.body.style.overflow = '';
 });
 
-// Modify the initial load to start with 'latest' category
+// Initialize with 'all' category
 document.addEventListener('DOMContentLoaded', () => {
-    fetchGoogleDriveImages().then(() => {
-        // Set 'Latest' as active category
-        categoryTabs.forEach(tab => {
-            tab.classList.remove('active');
-            if (tab.dataset.category === 'latest') {
-                tab.classList.add('active');
-            }
-        });
-        // Show latest images
-        filterImagesByCategory('latest');
-    });
+    categoryTabs.forEach(tab => tab.classList.remove('active'));
+    document.querySelector('[data-category="all"]').classList.add('active');
+    fetchGoogleDriveImages();
+});
+
+// Update download warning
+window.addEventListener('beforeunload', (e) => {
+    if (isDownloading) {
+        e.preventDefault();
+        const message = 'Download in progress. Are you sure you want to leave?';
+        e.returnValue = message;
+        return message;
+    }
 }); 
